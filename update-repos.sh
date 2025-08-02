@@ -127,18 +127,27 @@ main() {
             exit 1
         fi
         
-        # Пересобираем только обновленные сервисы
+        # Пересобираем только обновленные сервисы последовательно
         if [ "$blog_updated" = true ]; then
             log_info "Пересборка blog..."
             $compose_cmd build blog
+            if [ $? -ne 0 ]; then
+                log_error "Ошибка при сборке blog"
+                exit 1
+            fi
         fi
         
         if [ "$russiankisa_updated" = true ]; then
             log_info "Пересборка russiankisa..."
             $compose_cmd build russiankisa
+            if [ $? -ne 0 ]; then
+                log_error "Ошибка при сборке russiankisa"
+                exit 1
+            fi
         fi
         
         # Перезапускаем контейнеры
+        log_info "Перезапуск контейнеров..."
         $compose_cmd up -d
         
         log_success "Контейнеры перезапущены с обновлениями"

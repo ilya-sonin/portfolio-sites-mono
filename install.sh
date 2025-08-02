@@ -228,12 +228,25 @@ initial_deploy() {
         exit 1
     fi
     
-    # Выполняем деплой напрямую
+    # Выполняем деплой напрямую с последовательной сборкой
     log_info "Остановка существующих контейнеров..."
     $compose_cmd down 2>/dev/null || true
     
-    log_info "Сборка образов..."
-    $compose_cmd build --no-cache
+    log_info "Последовательная сборка образов..."
+    
+    log_info "Сборка blog..."
+    $compose_cmd build --no-cache blog
+    if [ $? -ne 0 ]; then
+        log_error "Ошибка при сборке blog"
+        exit 1
+    fi
+    
+    log_info "Сборка russiankisa..."
+    $compose_cmd build --no-cache russiankisa
+    if [ $? -ne 0 ]; then
+        log_error "Ошибка при сборке russiankisa"
+        exit 1
+    fi
     
     log_info "Запуск контейнеров..."
     $compose_cmd up -d

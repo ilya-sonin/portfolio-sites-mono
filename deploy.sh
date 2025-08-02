@@ -81,10 +81,67 @@ deploy() {
     local compose_cmd=$(get_docker_compose_cmd)
     
     $compose_cmd down
-    $compose_cmd build --no-cache
+    
+    # Последовательная сборка для экономии ресурсов
+    log_info "Последовательная сборка контейнеров..."
+    
+    log_info "Сборка blog..."
+    $compose_cmd build --no-cache blog
+    if [ $? -ne 0 ]; then
+        log_error "Ошибка при сборке blog"
+        exit 1
+    fi
+    
+    log_info "Сборка russiankisa..."
+    $compose_cmd build --no-cache russiankisa
+    if [ $? -ne 0 ]; then
+        log_error "Ошибка при сборке russiankisa"
+        exit 1
+    fi
+    
+    log_info "Запуск контейнеров..."
     $compose_cmd up -d
     
     log_success "Деплой завершен"
+}
+
+# Оптимизированная сборка для слабых серверов
+deploy_optimized() {
+    log_info "Запуск оптимизированного деплоя для слабых серверов..."
+    
+    local compose_cmd=$(get_docker_compose_cmd)
+    
+    $compose_cmd down
+    
+    # Очищаем Docker кэш для экономии места
+    log_info "Очистка Docker кэша..."
+    docker system prune -f
+    
+    # Последовательная сборка с ограничениями ресурсов
+    log_info "Последовательная сборка с ограничениями ресурсов..."
+    
+    log_info "Сборка blog (может занять 10-15 минут)..."
+    DOCKER_BUILDKIT=1 $compose_cmd build --no-cache --progress=plain blog
+    if [ $? -ne 0 ]; then
+        log_error "Ошибка при сборке blog"
+        exit 1
+    fi
+    
+    # Пауза между сборками для освобождения ресурсов
+    log_info "Пауза между сборками..."
+    sleep 30
+    
+    log_info "Сборка russiankisa (может занять 10-15 минут)..."
+    DOCKER_BUILDKIT=1 $compose_cmd build --no-cache --progress=plain russiankisa
+    if [ $? -ne 0 ]; then
+        log_error "Ошибка при сборке russiankisa"
+        exit 1
+    fi
+    
+    log_info "Запуск контейнеров..."
+    $compose_cmd up -d
+    
+    log_success "Оптимизированный деплой завершен"
 }
 
 # Остановка контейнеров
@@ -141,6 +198,7 @@ show_help() {
     echo ""
     echo "Команды:"
     echo "  deploy              - Сборка и запуск контейнеров"
+    echo "  deploy-optimized    - Оптимизированная сборка для слабых серверов"
     echo "  update              - Обновление репозиториев"
     echo "  update-deploy       - Обновление репозиториев и деплой"
     echo "  stop                - Остановка контейнеров"
@@ -152,6 +210,7 @@ show_help() {
     echo ""
     echo "Примеры:"
     echo "  $0 deploy"
+    echo "  $0 deploy-optimized  # Для слабых серверов"
     echo "  $0 logs blog"
     echo "  $0 update-deploy"
 }
@@ -163,6 +222,9 @@ main() {
     case "${1:-help}" in
         deploy)
             deploy
+            ;;
+        deploy-optimized)
+            deploy_optimized
             ;;
         update)
             update_submodules
