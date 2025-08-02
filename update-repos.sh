@@ -74,19 +74,30 @@ main() {
     if [ "$blog_updated" = true ] || [ "$russiankisa_updated" = true ]; then
         log_info "Обнаружены обновления, перезапускаем контейнеры..."
         
+        # Определение команды Docker Compose
+        local compose_cmd
+        if docker compose version &> /dev/null; then
+            compose_cmd="docker compose"
+        elif command -v docker-compose &> /dev/null; then
+            compose_cmd="docker-compose"
+        else
+            log_error "Docker Compose не найден"
+            exit 1
+        fi
+        
         # Пересобираем только обновленные сервисы
         if [ "$blog_updated" = true ]; then
             log_info "Пересборка blog..."
-            docker-compose build blog
+            $compose_cmd build blog
         fi
         
         if [ "$russiankisa_updated" = true ]; then
             log_info "Пересборка russiankisa..."
-            docker-compose build russiankisa
+            $compose_cmd build russiankisa
         fi
         
         # Перезапускаем контейнеры
-        docker-compose up -d
+        $compose_cmd up -d
         
         log_success "Контейнеры перезапущены с обновлениями"
     else

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   nginx:
     image: nginx:alpine
@@ -30,9 +28,6 @@ services:
     restart: unless-stopped
     networks:
       - app-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.blog.rule=Host(`ilya-sonin.ru`)"
 
   russiankisa:
     build:
@@ -44,9 +39,6 @@ services:
     restart: unless-stopped
     networks:
       - app-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.russiankisa.rule=Host(`russiankisadesign.ru`)"
 
 networks:
   app-network:

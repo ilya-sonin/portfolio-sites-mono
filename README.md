@@ -15,8 +15,8 @@
 
 ## Требования
 
-- Docker
-- Docker Compose
+- Docker (версия 20.10+)
+- Docker Compose (встроенный в Docker CLI или отдельная установка)
 - Git
 - Bash
 
@@ -99,7 +99,7 @@ cp blog/env.example blog/.env
 portfolio-sites-mono/
 ├── blog/                    # Проект blog
 │   ├── Dockerfile          # Dockerfile для blog
-│   ├── .env               # Переменные окружения (создать из env.example)
+│   ├── .env               # Переменные окружения (создается автоматически)
 │   └── ...
 ├── russiankisa/            # Проект russiankisa
 │   ├── Dockerfile          # Dockerfile для russiankisa
@@ -176,7 +176,7 @@ docker stats
 1. **Проверьте зависимости:**
 ```bash
 docker --version
-docker-compose --version
+docker compose version
 ```
 
 2. **Очистите кэш Docker:**
@@ -186,7 +186,7 @@ docker-compose --version
 
 3. **Пересоберите образы:**
 ```bash
-docker-compose build --no-cache
+docker compose build --no-cache
 ```
 
 ### Проблемы с доменами
@@ -195,7 +195,7 @@ docker-compose build --no-cache
 2. **Убедитесь, что порт 80 открыт на сервере**
 3. **Проверьте конфигурацию nginx:**
 ```bash
-docker-compose exec nginx nginx -t
+docker compose exec nginx nginx -t
 ```
 
 ### Проблемы с обновлениями
@@ -205,6 +205,29 @@ docker-compose exec nginx nginx -t
 3. **Проверьте cron задачи:**
 ```bash
 ./setup-cron.sh show
+```
+
+### Проблемы с .env файлом
+
+Если возникает ошибка "env file not found":
+
+1. **Проверьте наличие файла:**
+```bash
+ls -la blog/.env
+```
+
+2. **Создайте файл вручную:**
+```bash
+cp blog/env.example blog/.env
+# или
+touch blog/.env
+```
+
+3. **Добавьте необходимые переменные в blog/.env:**
+```bash
+NODE_ENV=production
+NITRO_HOST=0.0.0.0
+NITRO_PORT=3000
 ```
 
 ## Безопасность
@@ -220,6 +243,10 @@ docker-compose exec nginx nginx -t
 - Кэширование зависимостей pnpm
 - Gzip сжатие в nginx
 - Оптимизированные настройки nginx для Nuxt приложений
+
+## Совместимость
+
+Система поддерживает как новую команду `docker compose` (встроенную в Docker CLI), так и старую `docker-compose` (отдельную установку). Автоматически определяется доступная версия.
 
 ## Поддержка
 

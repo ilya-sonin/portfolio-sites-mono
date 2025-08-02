@@ -35,9 +35,13 @@ check_dependencies() {
         exit 1
     fi
     
-    if ! command -v docker-compose &> /dev/null; then
-        log_error "Docker Compose не установлен"
-        exit 1
+    # Проверяем поддержку docker compose (встроенная команда)
+    if ! docker compose version &> /dev/null; then
+        # Если встроенная команда не работает, проверяем отдельную установку
+        if ! command -v docker-compose &> /dev/null; then
+            log_error "Docker Compose не установлен"
+            exit 1
+        fi
     fi
     
     log_success "Все зависимости установлены"
@@ -64,13 +68,27 @@ update_repositories() {
     log_success "Репозитории обновлены"
 }
 
+# Определение команды Docker Compose
+get_docker_compose_cmd() {
+    if docker compose version &> /dev/null; then
+        echo "docker compose"
+    elif command -v docker-compose &> /dev/null; then
+        echo "docker-compose"
+    else
+        log_error "Docker Compose не найден"
+        exit 1
+    fi
+}
+
 # Сборка и запуск контейнеров
 deploy() {
     log_info "Запуск деплоя..."
     
-    docker-compose down
-    docker-compose build --no-cache
-    docker-compose up -d
+    local compose_cmd=$(get_docker_compose_cmd)
+    
+    $compose_cmd down
+    $compose_cmd build --no-cache
+    $compose_cmd up -d
     
     log_success "Деплой завершен"
 }
@@ -78,31 +96,35 @@ deploy() {
 # Остановка контейнеров
 stop() {
     log_info "Остановка контейнеров..."
-    docker-compose down
+    local compose_cmd=$(get_docker_compose_cmd)
+    $compose_cmd down
     log_success "Контейнеры остановлены"
 }
 
 # Перезапуск контейнеров
 restart() {
     log_info "Перезапуск контейнеров..."
-    docker-compose restart
+    local compose_cmd=$(get_docker_compose_cmd)
+    $compose_cmd restart
     log_success "Контейнеры перезапущены"
 }
 
 # Просмотр логов
 logs() {
     local service=${1:-""}
+    local compose_cmd=$(get_docker_compose_cmd)
     if [ -n "$service" ]; then
-        docker-compose logs -f "$service"
+        $compose_cmd logs -f "$service"
     else
-        docker-compose logs -f
+        $compose_cmd logs -f
     fi
 }
 
 # Статус контейнеров
 status() {
     log_info "Статус контейнеров:"
-    docker-compose ps
+    local compose_cmd=$(get_docker_compose_cmd)
+    $compose_cmd ps
 }
 
 # Очистка неиспользуемых ресурсов

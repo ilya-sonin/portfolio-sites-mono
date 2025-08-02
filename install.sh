@@ -83,20 +83,25 @@ install_docker() {
     log_warning "Перезагрузите систему или выполните 'newgrp docker' для применения изменений группы"
 }
 
-# Установка Docker Compose
-install_docker_compose() {
-    log_info "Установка Docker Compose..."
+# Проверка Docker Compose
+check_docker_compose() {
+    log_info "Проверка Docker Compose..."
     
-    if command -v docker-compose &> /dev/null; then
-        log_warning "Docker Compose уже установлен"
+    # Проверяем поддержку docker compose (встроенная команда)
+    if docker compose version &> /dev/null; then
+        log_success "Docker Compose поддерживается"
         return 0
     fi
     
-    # Установка Docker Compose
-    sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    sudo chmod +x /usr/local/bin/docker-compose
+    # Если встроенная команда не работает, проверяем отдельную установку
+    if command -v docker-compose &> /dev/null; then
+        log_success "Docker Compose установлен отдельно"
+        return 0
+    fi
     
-    log_success "Docker Compose установлен"
+    log_error "Docker Compose не найден. Установите Docker Compose отдельно"
+    log_info "Выполните: sudo curl -L 'https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)' -o /usr/local/bin/docker-compose && sudo chmod +x /usr/local/bin/docker-compose"
+    exit 1
 }
 
 # Настройка firewall
@@ -129,6 +134,18 @@ setup_environment() {
     if [ -f "blog/env.example" ] && [ ! -f "blog/.env" ]; then
         cp blog/env.example blog/.env
         log_warning "Файл blog/.env создан из примера. Отредактируйте его с реальными значениями"
+    elif [ ! -f "blog/.env" ]; then
+        log_warning "Файл blog/.env не найден. Создайте его вручную с необходимыми переменными окружения"
+        # Создаем минимальный .env файл
+        cat > blog/.env << EOF
+# Основные настройки
+NODE_ENV=production
+NITRO_HOST=0.0.0.0
+NITRO_PORT=3000
+
+# Добавьте другие необходимые переменные окружения ниже
+EOF
+        log_info "Создан базовый файл blog/.env"
     fi
     
     log_success "Переменные окружения настроены"
@@ -182,7 +199,26 @@ setup_permissions() {
 initial_deploy() {
     log_info "Выполнение первоначального деплоя..."
     
-    ./deploy.sh deploy
+    # Определение команды Docker Compose
+    local compose_cmd
+    if docker compose version &> /dev/null; then
+        compose_cmd="docker compose"
+    elif command -v docker-compose &> /dev/null; then
+        compose_cmd="docker-compose"
+    else
+        log_error "Docker Compose не найден"
+        exit 1
+    fi
+    
+    # Выполняем деплой напрямую
+    log_info "Остановка существующих контейнеров..."
+    $compose_cmd down 2>/dev/null || true
+    
+    log_info "Сборка образов..."
+    $compose_cmd build --no-cache
+    
+    log_info "Запуск контейнеров..."
+    $compose_cmd up -d
     
     log_success "Первоначальный деплой завершен"
 }
@@ -242,7 +278,7 @@ main() {
     
     if [ "$skip_docker" = false ]; then
         install_docker
-        install_docker_compose
+        check_docker_compose
     fi
     
     if [ "$skip_firewall" = false ]; then
