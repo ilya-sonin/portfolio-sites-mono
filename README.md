@@ -47,6 +47,9 @@ cp blog/env.example blog/.env
 # Оптимизированный деплой для слабых серверов
 ./deploy.sh deploy-optimized
 
+# Деплой готовых собранных проектов
+./deploy.sh deploy-ready-dists
+
 # Обновление репозиториев
 ./deploy.sh update
 
@@ -68,6 +71,25 @@ cp blog/env.example blog/.env
 # Очистка ресурсов
 ./deploy.sh cleanup
 ```
+
+### Локальная сборка и загрузка на сервер
+
+Для слабых серверов рекомендуется использовать локальную сборку:
+
+```bash
+# Сборка локально и загрузка на сервер
+./build-and-push.sh <user@server-ip>
+
+# Примеры:
+./build-and-push.sh user@192.168.1.100
+./build-and-push.sh root@192.168.1.100
+```
+
+Этот скрипт:
+1. Собирает оба проекта локально
+2. Создает архив с готовыми dist-ами
+3. Загружает на сервер
+4. Запускает деплой готовых dist-ов
 
 ### Автоматическое обновление
 
@@ -117,10 +139,20 @@ cp blog/env.example blog/.env
 ./deploy.sh deploy-optimized
 ```
 
+### Деплой готовых dist-ов (рекомендуется для слабых серверов)
+```bash
+# На локальной машине (мощной)
+./build-and-push.sh <user@server-ip>
+
+# На сервере (слабом)
+./deploy.sh deploy-ready-dists
+```
+
 ### Ожидаемое время сборки
-- **Blog**: 10-15 минут
-- **Russiankisa**: 10-15 минут
-- **Общее время**: 20-30 минут
+- **Локальная сборка**: 2-5 минут (на мощной машине)
+- **Загрузка на сервер**: 1-2 минуты
+- **Деплой готовых dist-ов**: 30 секунд - 1 минута
+- **Общее время**: 3-8 минут
 
 ### Мониторинг ресурсов
 ```bash
@@ -136,19 +168,23 @@ docker stats
 ```
 portfolio-sites-mono/
 ├── blog/                    # Проект blog
-│   ├── Dockerfile          # Dockerfile для blog
+│   ├── Dockerfile          # Dockerfile для полной сборки
+│   ├── Dockerfile.dist     # Dockerfile для готовых dist-ов
 │   ├── .env               # Переменные окружения (создается автоматически)
 │   └── ...
 ├── russiankisa/            # Проект russiankisa
-│   ├── Dockerfile          # Dockerfile для russiankisa
+│   ├── Dockerfile          # Dockerfile для полной сборки
+│   ├── Dockerfile.dist     # Dockerfile для готовых dist-ов
 │   └── ...
 ├── nginx/                  # Конфигурация Nginx
 │   ├── nginx.conf         # Основная конфигурация
 │   └── conf.d/
 │       └── default.conf   # Конфигурация доменов
 ├── ssl/                   # SSL сертификаты (опционально)
-├── docker-compose.yml     # Docker Compose конфигурация
+├── docker-compose.yml     # Docker Compose для полной сборки
+├── docker-compose.dist.yml # Docker Compose для готовых dist-ов
 ├── deploy.sh             # Основной скрипт управления
+├── build-and-push.sh     # Скрипт локальной сборки и загрузки
 ├── update-repos.sh       # Скрипт обновления репозиториев
 ├── setup-cron.sh         # Скрипт настройки cron
 └── .dockerignore         # Исключения для Docker
@@ -279,18 +315,27 @@ NITRO_PORT=3000
 ./deploy.sh deploy-optimized
 ```
 
-2. **Мониторьте использование ресурсов:**
+2. **Или используйте локальную сборку (рекомендуется):**
+```bash
+# На локальной машине
+./build-and-push.sh <user@server-ip>
+
+# На сервере
+./deploy.sh deploy-ready-dists
+```
+
+3. **Мониторьте использование ресурсов:**
 ```bash
 docker stats
 htop
 ```
 
-3. **Очистите неиспользуемые ресурсы:**
+4. **Очистите неиспользуемые ресурсы:**
 ```bash
 docker system prune -a
 ```
 
-4. **Увеличьте swap файл (если необходимо):**
+5. **Увеличьте swap файл (если необходимо):**
 ```bash
 sudo fallocate -l 1G /swapfile
 sudo chmod 600 /swapfile
@@ -312,6 +357,7 @@ sudo swapon /swapfile
 - Gzip сжатие в nginx
 - Оптимизированные настройки nginx для Nuxt приложений
 - Ограничения ресурсов для стабильной работы на слабых серверах
+- Локальная сборка для максимальной производительности
 
 ## Git Submodules
 

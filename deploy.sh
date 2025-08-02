@@ -144,6 +144,42 @@ deploy_optimized() {
     log_success "Оптимизированный деплой завершен"
 }
 
+# Деплой готовых собранных проектов
+deploy_ready_dists() {
+    log_info "Запуск деплоя готовых собранных проектов..."
+    
+    local compose_cmd=$(get_docker_compose_cmd)
+    
+    # Останавливаем контейнеры
+    $compose_cmd down
+    
+    # Проверяем наличие готовых dist-ов
+    if [ ! -d "blog/.output" ]; then
+        log_error "Папка blog/.output не найдена. Сначала соберите проект локально."
+        log_info "Выполните: cd blog && pnpm build"
+        exit 1
+    fi
+    
+    if [ ! -d "russiankisa/.output" ]; then
+        log_error "Папка russiankisa/.output не найдена. Сначала соберите проект локально."
+        log_info "Выполните: cd russiankisa && pnpm build"
+        exit 1
+    fi
+    
+    log_info "Найдены готовые dist-ы. Сборка и запуск контейнеров..."
+    
+    # Используем специальный docker-compose файл для готовых dist-ов
+    if [ -f "docker-compose.dist.yml" ]; then
+        log_info "Используем docker-compose.dist.yml..."
+        $compose_cmd -f docker-compose.dist.yml up -d --build
+    else
+        log_error "Файл docker-compose.dist.yml не найден"
+        exit 1
+    fi
+    
+    log_success "Деплой готовых dist-ов завершен"
+}
+
 # Остановка контейнеров
 stop() {
     log_info "Остановка контейнеров..."
@@ -199,6 +235,7 @@ show_help() {
     echo "Команды:"
     echo "  deploy              - Сборка и запуск контейнеров"
     echo "  deploy-optimized    - Оптимизированная сборка для слабых серверов"
+    echo "  deploy-ready-dists  - Деплой готовых собранных проектов"
     echo "  update              - Обновление репозиториев"
     echo "  update-deploy       - Обновление репозиториев и деплой"
     echo "  stop                - Остановка контейнеров"
@@ -211,6 +248,7 @@ show_help() {
     echo "Примеры:"
     echo "  $0 deploy"
     echo "  $0 deploy-optimized  # Для слабых серверов"
+    echo "  $0 deploy-ready-dists  # Готовые dist-ы"
     echo "  $0 logs blog"
     echo "  $0 update-deploy"
 }
@@ -225,6 +263,9 @@ main() {
             ;;
         deploy-optimized)
             deploy_optimized
+            ;;
+        deploy-ready-dists)
+            deploy_ready_dists
             ;;
         update)
             update_submodules
