@@ -21,53 +21,95 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Функция для обновления одного репозитория
-update_repo() {
-    local repo_path=$1
-    local repo_name=$2
+# Функция для обновления submodules
+update_submodules() {
+    log_info "Обновление Git submodules..."
     
-    if [ ! -d "$repo_path" ]; then
-        log_error "Директория $repo_path не найдена"
-        return 1
+    # Проверяем, есть ли изменения в удаленных репозиториях
+    git submodule foreach git fetch origin
+    
+    local blog_updated=false
+    local russiankisa_updated=false
+    
+    # Проверяем blog submodule
+    if [ -d "blog" ] && [ -f "blog/.git" ]; then
+        cd blog
+        local current_branch=$(git branch --show-current)
+        local remote_commit=$(git rev-parse origin/$current_branch 2>/dev/null)
+        local local_commit=$(git rev-parse HEAD)
+        
+        if [ "$remote_commit" != "$local_commit" ]; then
+            log_info "Найдены изменения в blog submodule, обновляем..."
+            git pull origin $current_branch
+            blog_updated=true
+            log_success "Blog submodule обновлен"
+        else
+            log_info "Blog submodule уже актуален"
+        fi
+        cd ..
     fi
     
-    log_info "Обновление $repo_name..."
+    # Проверяем russiankisa submodule
+    if [ -d "russiankisa" ] && [ -f "russiankisa/.git" ]; then
+        cd russiankisa
+        local current_branch=$(git branch --show-current)
+        local remote_commit=$(git rev-parse origin/$current_branch 2>/dev/null)
+        local local_commit=$(git rev-parse HEAD)
+        
+        if [ "$remote_commit" != "$local_commit" ]; then
+            log_info "Найдены изменения в russiankisa submodule, обновляем..."
+            git pull origin $current_branch
+            russiankisa_updated=true
+            log_success "Russiankisa submodule обновлен"
+        else
+            log_info "Russiankisa submodule уже актуален"
+        fi
+        cd ..
+    fi
     
-    cd "$repo_path"
-    
-    # Проверяем, есть ли изменения в удаленном репозитории
-    git fetch origin
-    
-    local current_branch=$(git branch --show-current)
-    local remote_commit=$(git rev-parse origin/$current_branch)
-    local local_commit=$(git rev-parse HEAD)
-    
-    if [ "$remote_commit" != "$local_commit" ]; then
-        log_info "Найдены изменения в $repo_name, обновляем..."
-        git pull origin $current_branch
-        log_success "$repo_name обновлен"
+    # Возвращаем информацию об обновлениях
+    if [ "$blog_updated" = true ] || [ "$russiankisa_updated" = true ]; then
         return 0
     else
-        log_info "$repo_name уже актуален"
         return 1
     fi
 }
 
 # Основная функция обновления
 main() {
-    log_info "Начинаем проверку обновлений репозиториев..."
+    log_info "Начинаем проверку обновлений submodules..."
+    
+    # Обновляем submodules
+    update_submodules
+    local update_result=$?
     
     local blog_updated=false
     local russiankisa_updated=false
     
-    # Обновляем blog
-    if update_repo "blog" "blog"; then
-        blog_updated=true
-    fi
-    
-    # Обновляем russiankisa
-    if update_repo "russiankisa" "russiankisa"; then
-        russiankisa_updated=true
+    # Проверяем, какие submodules были обновлены
+    if [ $update_result -eq 0 ]; then
+        # Если были обновления, определяем какие именно
+        if [ -d "blog" ] && [ -f "blog/.git" ]; then
+            cd blog
+            local current_branch=$(git branch --show-current)
+            local remote_commit=$(git rev-parse origin/$current_branch 2>/dev/null)
+            local local_commit=$(git rev-parse HEAD)
+            if [ "$remote_commit" != "$local_commit" ]; then
+                blog_updated=true
+            fi
+            cd ..
+        fi
+        
+        if [ -d "russiankisa" ] && [ -f "russiankisa/.git" ]; then
+            cd russiankisa
+            local current_branch=$(git branch --show-current)
+            local remote_commit=$(git rev-parse origin/$current_branch 2>/dev/null)
+            local local_commit=$(git rev-parse HEAD)
+            if [ "$remote_commit" != "$local_commit" ]; then
+                russiankisa_updated=true
+            fi
+            cd ..
+        fi
     fi
     
     # Если были обновления, перезапускаем контейнеры

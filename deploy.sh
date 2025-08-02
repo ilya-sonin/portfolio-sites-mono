@@ -47,25 +47,19 @@ check_dependencies() {
     log_success "Все зависимости установлены"
 }
 
-# Обновление репозиториев
-update_repositories() {
-    log_info "Обновление репозиториев..."
+# Обновление submodules
+update_submodules() {
+    log_info "Обновление Git submodules..."
     
-    if [ -d "blog" ]; then
-        log_info "Обновление blog репозитория..."
-        cd blog
-        git pull origin main || git pull origin master
-        cd ..
+    # Обновляем все submodules до последних коммитов
+    git submodule update --remote --merge
+    
+    if [ $? -eq 0 ]; then
+        log_success "Submodules обновлены"
+    else
+        log_error "Ошибка при обновлении submodules"
+        exit 1
     fi
-    
-    if [ -d "russiankisa" ]; then
-        log_info "Обновление russiankisa репозитория..."
-        cd russiankisa
-        git pull origin main || git pull origin master
-        cd ..
-    fi
-    
-    log_success "Репозитории обновлены"
 }
 
 # Определение команды Docker Compose
@@ -137,7 +131,7 @@ cleanup() {
 
 # Обновление и деплой
 update_and_deploy() {
-    update_repositories
+    update_submodules
     deploy
 }
 
@@ -171,7 +165,7 @@ main() {
             deploy
             ;;
         update)
-            update_repositories
+            update_submodules
             ;;
         update-deploy)
             update_and_deploy

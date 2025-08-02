@@ -1,0 +1,6 @@
+[submodule "blog"]
+	path = blog
+	url = https://github.com/ilya-sonin/blog.git
+[submodule "russiankisa"]
+	path = russiankisa
+	url = https://github.com/ilya-sonin/russiankisa.git 

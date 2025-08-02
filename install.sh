@@ -151,37 +151,55 @@ EOF
     log_success "Переменные окружения настроены"
 }
 
-# Клонирование репозиториев
-clone_repositories() {
-    log_info "Клонирование репозиториев..."
+# Инициализация и обновление submodules
+setup_submodules() {
+    log_info "Настройка Git submodules..."
     
-    if [ ! -d "blog" ]; then
-        log_info "Клонирование blog репозитория..."
-        git clone https://github.com/ilya-sonin/blog.git blog
-        if [ $? -eq 0 ]; then
-            log_success "Blog репозиторий клонирован"
-        else
-            log_error "Ошибка при клонировании blog репозитория"
-            exit 1
-        fi
-    else
-        log_warning "Директория blog уже существует"
+    # Инициализируем submodules если это первый запуск
+    if [ ! -f ".gitmodules" ]; then
+        log_info "Создание .gitmodules файла..."
+        cat > .gitmodules << EOF
+[submodule "blog"]
+	path = blog
+	url = https://github.com/ilya-sonin/blog.git
+[submodule "russiankisa"]
+	path = russiankisa
+	url = https://github.com/ilya-sonin/russiankisa.git
+EOF
+        log_success ".gitmodules файл создан"
     fi
     
-    if [ ! -d "russiankisa" ]; then
-        log_info "Клонирование russiankisa репозитория..."
-        git clone https://github.com/ilya-sonin/russiankisa.git russiankisa
+    # Добавляем submodules если они еще не добавлены
+    if [ ! -d "blog" ] || [ ! -f "blog/.git" ]; then
+        log_info "Добавление blog submodule..."
+        git submodule add https://github.com/ilya-sonin/blog.git blog
         if [ $? -eq 0 ]; then
-            log_success "Russiankisa репозиторий клонирован"
+            log_success "Blog submodule добавлен"
         else
-            log_error "Ошибка при клонировании russiankisa репозитория"
+            log_error "Ошибка при добавлении blog submodule"
             exit 1
         fi
-    else
-        log_warning "Директория russiankisa уже существует"
     fi
     
-    log_success "Репозитории готовы"
+    if [ ! -d "russiankisa" ] || [ ! -f "russiankisa/.git" ]; then
+        log_info "Добавление russiankisa submodule..."
+        git submodule add https://github.com/ilya-sonin/russiankisa.git russiankisa
+        if [ $? -eq 0 ]; then
+            log_success "Russiankisa submodule добавлен"
+        else
+            log_error "Ошибка при добавлении russiankisa submodule"
+            exit 1
+        fi
+    fi
+    
+    # Инициализируем и обновляем submodules
+    log_info "Инициализация submodules..."
+    git submodule init
+    
+    log_info "Обновление submodules..."
+    git submodule update --init --recursive
+    
+    log_success "Submodules настроены и обновлены"
 }
 
 # Настройка прав доступа
@@ -287,7 +305,7 @@ main() {
     
     create_directories
     setup_environment
-    clone_repositories
+    setup_submodules
     setup_permissions
     
     if [ "$skip_deploy" = false ]; then

@@ -22,7 +22,7 @@
 
 ## Быстрый старт
 
-1. **Запустите установку (репозитории клонируются автоматически):**
+1. **Запустите установку (submodules инициализируются автоматически):**
 ```bash
 ./install.sh
 ```
@@ -67,7 +67,7 @@ cp blog/env.example blog/.env
 
 ### Автоматическое обновление
 
-#### Настройка cron для автоматического обновления:
+#### Настройка cron для автоматического обновления submodules:
 
 ```bash
 # Настройка логирования
@@ -89,7 +89,7 @@ cp blog/env.example blog/.env
 #### Ручное обновление:
 
 ```bash
-# Обновление с автоматическим перезапуском контейнеров
+# Обновление submodules с автоматическим перезапуском контейнеров
 ./update-repos.sh
 ```
 
@@ -202,7 +202,11 @@ docker compose exec nginx nginx -t
 
 1. **Проверьте права доступа к репозиториям**
 2. **Убедитесь, что git настроен правильно**
-3. **Проверьте cron задачи:**
+3. **Проверьте статус submodules:**
+```bash
+git submodule status
+```
+4. **Проверьте cron задачи:**
 ```bash
 ./setup-cron.sh show
 ```
@@ -243,6 +247,26 @@ NITRO_PORT=3000
 - Кэширование зависимостей pnpm
 - Gzip сжатие в nginx
 - Оптимизированные настройки nginx для Nuxt приложений
+
+## Git Submodules
+
+Система использует Git submodules для управления зависимыми репозиториями:
+- **blog** - подключается как submodule из https://github.com/ilya-sonin/blog.git
+- **russiankisa** - подключается как submodule из https://github.com/ilya-sonin/russiankisa.git
+
+### Управление submodules
+
+```bash
+# Просмотр статуса submodules
+git submodule status
+
+# Обновление всех submodules
+git submodule update --remote
+
+# Инициализация submodules (при первом клонировании)
+git submodule init
+git submodule update
+```
 
 ## Совместимость
 
